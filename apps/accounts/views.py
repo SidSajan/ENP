@@ -3,7 +3,7 @@ from .forms import ProfileForm, UserForm
 from django.shortcuts import redirect, render
 from apps.accounts.forms import UserCreationForm, LoginForm
 from django.contrib.auth import authenticate, login, logout
-
+import hashlib
 # class LoginView(TemplateView):
 #     template_name = "accounts/login.html"
 
@@ -40,7 +40,7 @@ class SignUpView(View):
 			password=form.cleaned_data['password1']
 			# user.(password)
 			user.password = password
-			
+			user.hash_string = hashlib.md5(password.encode('utf-8')).hexdigest()
 			user.save()
 
 

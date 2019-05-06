@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.utils.translation import gettext, gettext_lazy as _
 from apps.accounts.models import NormalLogin
+import hashlib
 
 class UserForm(forms.ModelForm):
 	password=forms.CharField(widget=forms.PasswordInput)
@@ -30,8 +31,8 @@ class LoginForm(forms.Form):
 		user = NormalLogin.objects.filter(username=username).first()
 		if user:
 			# convert to hash value
-			if user.password != password:
-				raise forms.ValidationError({'password':'The entered password is invalid'})
+			if user.hash_string != hashlib.md5(password.encode('utf-8')).hexdigest():
+				raise forms.ValidationError({'password':'The entered password is invalid.'})
 		else:
 			raise forms.ValidationError({'username':'This username does not exist.'})
 		return cleaned_data
