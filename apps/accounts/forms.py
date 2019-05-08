@@ -3,39 +3,45 @@ from django.contrib.auth.models import User
 from django.utils.translation import gettext, gettext_lazy as _
 from apps.accounts.models import NormalLogin
 import hashlib
+from Crypto import Random
+from Crypto.Cipher import AES
 
 class UserForm(forms.ModelForm):
-	password=forms.CharField(widget=forms.PasswordInput)
+    password = forms.CharField(widget=forms.PasswordInput)
 
-	class Meta:
-		model=User
-		fields= ['username','email','first_name','last_name','password']
+    class Meta:
+        model=User
+        fields= ['username','email','first_name','last_name','password']
 
 
 class ProfileForm(forms.ModelForm):
-	
-	class Meta:
-		model=User
-		fields= ['email','first_name','last_name']
+    
+    class Meta:
+        model=User
+        fields= ['email','first_name','last_name']
 
 
 class LoginForm(forms.Form):
-	username= forms.CharField()
-	password = forms.CharField( widget=forms.PasswordInput)
+    username = forms.CharField()
+    password = forms.CharField(widget = forms.PasswordInput)
 
-	def clean(self):
-		cleaned_data =super(LoginForm, self).clean()
-		username =cleaned_data.get('username')
-		password =cleaned_data.get('password')
+    def clean(self):
+        cleaned_data = super(LoginForm, self).clean()
+        username = cleaned_data.get('username')
+        password = cleaned_data.get('password')
 
-		user = NormalLogin.objects.filter(username=username).first()
-		if user:
-			# convert to hash value
-			if user.hash_string != hashlib.md5(password.encode('utf-8')).hexdigest():
-				raise forms.ValidationError({'password':'The entered password is invalid.'})
-		else:
-			raise forms.ValidationError({'username':'This username does not exist.'})
-		return cleaned_data
+        user = NormalLogin.objects.filter(username=username).first()
+        if user:
+            iv = user.rev_ehval[:16]
+            print ("iv: " + iv)
+            key = user.hash_string[:32]
+            aes = AES.new(key.encode('utf-8'), AES.MODE_CBC, iv)
+            #print (aes.decrypt(user.rev_ehval[32:]))
+            if user.hash_string != hashlib.sha3_256(password.encode('utf-8')).hexdigest():
+                raise forms.ValidationError({'password':'The entered password is invalid.'})
+        else:
+            raise forms.ValidationError({'username':'This username does not exist.'})
+        return cleaned_data
 
 class UserCreationForm(forms.ModelForm):
 

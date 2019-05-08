@@ -1,0 +1,45 @@
+import random
+import hashlib
+from Crypto.Cipher import AES
+
+
+def generate_enp(hash_string):
+	binary_value = bin(int(hash_string, 16))[2:].zfill(256)
+	random.seed(10)
+	indexes = [i for i in range(256)]
+	random.shuffle(indexes)
+	shuffled_hash = ''.join([binary_value[index] for index in indexes])
+	negative_password_before_pi = []
+	for count in range(1, 257):
+		num = shuffled_hash[:count]
+		# 1000 0
+		num = num[:-1] + '0' if num[-1] == '1' else '1'
+		num += '*'*(256-count)
+		negative_password_before_pi.append(num)
+
+	negative_password_after_pi = []
+	starred_string = '*'*256
+	for count in range(0, 256):
+		new_num = negative_password_before_pi[count]
+		starred_list = list(starred_string)
+		for index_counter in range(0, count):
+			index = indexes[index_counter]
+			starred_list[index] = new_num[index_counter]
+		negative_password_after_pi.append(''.join(starred_list))
+
+	encoded_passwords = []
+	iv = ''.join([chr(random.randint(0, 0xFF)) for i in range(16)])
+	aes = AES.new(hash_string, AES.MODE_CBC, iv)
+	for password in negative_password_after_pi:
+		encoded_password = password
+		encoded_password.replace("0", "00")
+		encoded_password.replace("1", "01")
+		encoded_password.replace("*", random.choice(["10","11"]))
+		data = hex(int(encoded_password, 2))[2:].zfill(128)
+		encoded_passwords.append(aes.encrypt(data))
+
+	return ','.join(encoded_passwords)
+
+hash_p = hashlib.sha3_256('fghfhfhgd'.encode('utf-8')).hexdigest()
+
+print(generate_enp(hash_p))
